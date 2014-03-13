@@ -23,8 +23,6 @@ def configure(conf):
 	conf.load('compiler_c')
 	conf.load('compiler_cxx')
 
-	#conf.check(features='c', cflags= ['-Werror', '-Wextra'],fragment='int main(){return 0;}', msg="Checking for flags")
-
 	#override windows lib pattern to lib%s.dll instead of %s.dll
 	if platform.system() == "Windows":
 		conf.env.cshlib_PATTERN = 'lib%s.dll'
