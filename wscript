@@ -12,16 +12,16 @@ out = 'wbuild'
 ZMQ_VERSION = "4.1.0"
 
 def options(opt):
-	opt.load('compiler_c compiler_cxx')
+	opt.load('compiler_c compiler_cxx waf_unit_test')
 	
 	opt.add_option('--poller', action='store', default='', help='Choose polling system. valid values are kqueue, epoll, devpoll, poll or select [default=autodetect]"', dest='POLLER')
-	opt.add_option('--tests', action='store_true', default=False, help='Build and launch all tests', dest='tests')
 	opt.add_option('--disable-shared', action='store_true', default=False, help='Disable build of shared library', dest='shared')
 	opt.add_option('--enable-static', action='store_true', default=False, help='Enable build of static library', dest='static')
 	
 def configure(conf):	
 	conf.load('compiler_c')
 	conf.load('compiler_cxx')
+	conf.load('waf_unit_test')
 
 	#override windows lib pattern to lib%s.dll instead of %s.dll
 	if platform.system() == "Windows":
@@ -80,7 +80,7 @@ def configure(conf):
 		
 		
 	#check compiler flags
-	conf.env.CXXFLAGS = ['-g', '-O2']
+	conf.env.CXXFLAGS = ['-O3']
 	if conf.check(cxxflags='-Wall', mandatory=False):
 		conf.env.CXXFLAGS += ['-Wall']
 	if conf.check(cxxflags='-Wextra', mandatory=False):
@@ -98,7 +98,7 @@ def configure(conf):
 	conf.write_config_header('platform.hpp')
 	conf.defines = {}
 
-	conf.env.DEFINES = ['_GNU_SOURCE', '_REENTRANT', '_THREAD_SAFE']
+	conf.env.DEFINES = ['_GNU_SOURCE', '_REENTRANT', '_THREAD_SAFE', 'NDEBUG']
 	if platform.system() == "Windows":
 		conf.env.DEFINES += ['DLL_EXPORT']
 		
@@ -138,12 +138,17 @@ def build(bld):
 	#########################################################
 	# build and run tests
 	#########################################################
-	if Options.options.tests == True:
-		test(bld)
+	test(bld)
 
 def test(bld):
 	bld.add_group()
-	zmq_tests = bld.path.ant_glob(['tests/*.cpp'])
+	if platform.system() == "Windows":
+		zmq_tests = bld.path.ant_glob(['tests/*.cpp'])
+	else:
+		zmq_tests = bld.path.ant_glob(['tests/*.cpp'], excl=[		
+			'tests/test_monitor.cpp', 'tests/test_pair_ipc.cpp', 'tests/test_reqrep_ipc.cpp', 'tests/test_fork.cpp', 
+			'tests/test_abstract_ipc.cpp', 'tests/test_proxy.cpp', 'tests/test_filter_ipc.cpp',])
+		
 	for test in zmq_tests:
 		testname = os.path.splitext(os.path.basename(test.abspath()))[0]
 		bld(
